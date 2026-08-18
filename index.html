@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIPADU — Sistem Persuratan Digital Terpadu</title>
+<style>
+  :root{
+    --navy: #1B2A4A;
+    --navy-deep: #101c33;
+    --paper: #F6F4EE;
+    --paper-dim: #ece8dd;
+    --gold: #A9884F;
+    --stamp: #A13D3D;
+    --ink: #24304A;
+    --line: #d8d2c2;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family: Georgia, 'Times New Roman', serif;
+    min-height:100vh;
+  }
+  header{
+    background:var(--navy);
+    color:var(--paper);
+    padding:28px 40px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom:4px solid var(--gold);
+  }
+  header .brand{display:flex; align-items:center; gap:16px;}
+  header .seal{
+    width:46px;height:46px;border-radius:50%;
+    border:2px solid var(--gold);
+    display:flex;align-items:center;justify-content:center;
+    font-family: 'Courier New', monospace;
+    font-size:11px; font-weight:bold; letter-spacing:1px;
+    color:var(--gold);
+  }
+  header h1{
+    font-size:20px;
+    margin:0;
+    letter-spacing:0.5px;
+    font-weight:normal;
+  }
+  header .sub{
+    font-family: 'Courier New', monospace;
+    font-size:11px;
+    letter-spacing:2px;
+    opacity:0.7;
+    margin-top:2px;
+  }
+  header .tag{
+    font-family:'Courier New', monospace;
+    font-size:11px;
+    color:var(--gold);
+    text-align:right;
+    line-height:1.6;
+  }
+  .layout{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:0;
+    min-height: calc(100vh - 96px);
+  }
+  @media (max-width:900px){ .layout{grid-template-columns:1fr;} }
+  .panel{
+    padding:36px 40px;
+  }
+  .panel.left{
+    border-right:1px solid var(--line);
+  }
+  .step-label{
+    font-family:'Courier New', monospace;
+    font-size:11px;
+    letter-spacing:2px;
+    color:var(--gold);
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  h2{
+    font-size:19px;
+    font-weight:normal;
+    color:var(--navy);
+    margin:0 0 18px 0;
+    border-bottom:1px solid var(--line);
+    padding-bottom:14px;
+  }
+  textarea{
+    width:100%;
+    min-height:260px;
+    padding:16px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-family: 'Courier New', monospace;
+    font-size:13px;
+    line-height:1.6;
+    color:var(--ink);
+    resize:vertical;
+  }
+  textarea:focus{outline:2px solid var(--navy); outline-offset:1px;}
+  .hint{
+    font-size:12px;
+    color:#7a7566;
+    margin-top:8px;
+    font-family: Arial, sans-serif;
+  }
+  button{
+    font-family: Arial, sans-serif;
+    font-size:13px;
+    letter-spacing:0.5px;
+    padding:12px 24px;
+    background:var(--navy);
+    color:var(--paper);
+    border:none;
+    cursor:pointer;
+    margin-top:16px;
+    transition: background 0.15s ease;
+  }
+  button:hover:not(:disabled){background:var(--navy-deep);}
+  button:disabled{background:#a7acb8; opacity:0.5; cursor:not-allowed;}
+  button.secondary{
+    background:transparent;
+    color:var(--navy);
+    border:1px solid var(--navy);
+  }
+  button.secondary:hover:not(:disabled){background:var(--paper-dim);}
+  .tabs{
+    display:flex;
+    gap:0;
+    margin-bottom:16px;
+    border-bottom:1px solid var(--line);
+  }
+  .tab-btn{
+    font-family:Arial, sans-serif;
+    font-size:12px;
+    letter-spacing:0.5px;
+    padding:9px 16px;
+    background:none;
+    color:#8a8474;
+    border:none;
+    border-bottom:2px solid transparent;
+    margin:0;
+    cursor:pointer;
+  }
+  .tab-btn.active{
+    color:var(--navy);
+    border-bottom:2px solid var(--gold);
+  }
+  .dropzone{
+    border:1.5px dashed var(--line);
+    background:#fff;
+    padding:40px 20px;
+    text-align:center;
+    cursor:pointer;
+    font-family:Arial, sans-serif;
+    font-size:13px;
+    color:var(--ink);
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .dropzone:hover{border-color:var(--gold); background:var(--paper-dim);}
+  .dropzone.has-file{
+    border-style:solid;
+    border-color:var(--gold);
+    text-align:left;
+    padding:16px 20px;
+  }
+  .settings{
+    background:#fff;
+    border:1px solid var(--line);
+    padding:18px 22px;
+    margin-bottom:24px;
+  }
+  .settings summary{
+    font-family:'Courier New', monospace;
+    font-size:11px;
+    letter-spacing:1.5px;
+    color:var(--gold);
+    text-transform:uppercase;
+    cursor:pointer;
+    outline:none;
+  }
+  .settings-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px 16px;
+    margin-top:16px;
+  }
+  .settings-grid .full{grid-column:1 / -1;}
+  .settings-grid label{
+    display:block;
+    font-family:Arial, sans-serif;
+    font-size:11px;
+    color:#7a7566;
+    margin-bottom:3px;
+  }
+  .settings-grid input, .settings-grid select{
+    width:100%;
+    padding:8px 10px;
+    border:1px solid var(--line);
+    font-family:Arial, sans-serif;
+    font-size:13px;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  .settings-grid input:focus, .settings-grid select:focus{outline:2px solid var(--navy); outline-offset:0;}
+  .jenis-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:6px;
+  }
+  .jenis-row label{
+    font-family:Arial, sans-serif;
+    font-size:12px;
+    color:var(--ink);
+    white-space:nowrap;
+  }
+  .jenis-row select{
+    padding:8px 10px;
+    border:1px solid var(--line);
+    font-family:Arial, sans-serif;
+    font-size:13px;
+    background:#fff;
+    color:var(--ink);
+    flex:1;
+  }
+  .sample-btn{
+    background:none;
+    border:none;
+    color:var(--navy);
+    text-decoration:underline;
+    padding:0;
+    margin:0 0 14px 0;
+    font-family:Arial, sans-serif;
+    font-size:12px;
+    cursor:pointer;
+  }
+  .card{
+    background:#fff;
+    border:1px solid var(--line);
+    padding:20px 22px;
+    margin-top:18px;
+  }
+  .field{margin-bottom:14px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{
+    display:block;
+    font-family:'Courier New', monospace;
+    font-size:10px;
+    letter-spacing:1.5px;
+    color:var(--gold);
+    text-transform:uppercase;
+    margin-bottom:4px;
+  }
+  .field .val{
+    font-size:14px;
+    color:var(--ink);
+    line-height:1.5;
+  }
+  .field ul{margin:4px 0 0 0; padding-left:18px;}
+  .field li{margin-bottom:4px;}
+  .draft-wrap{position:relative;}
+  .stamp{
+    position:absolute;
+    top:14px;
+    right:14px;
+    width:86px;
+    height:86px;
+    border:2.5px solid var(--stamp);
+    border-radius:50%;
+    color:var(--stamp);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Courier New', monospace;
+    font-weight:bold;
+    font-size:12px;
+    letter-spacing:1px;
+    transform:rotate(-14deg);
+    opacity:0.75;
+    pointer-events:none;
+  }
+  .status{
+    font-family:'Courier New', monospace;
+    font-size:12px;
+    color:var(--navy);
+    margin-top:14px;
+    min-height:16px;
+  }
+  .status.err{color:var(--stamp);}
+  .footer-actions{
+    display:flex;
+    gap:10px;
+    margin-top:14px;
+    flex-wrap:wrap;
+  }
+  .empty{
+    color:#9a9484;
+    font-family:Arial, sans-serif;
+    font-size:13px;
+    font-style:italic;
+    padding:30px 0;
+    text-align:center;
+  }
+  .spinner{
+    display:inline-block;
+    width:12px;height:12px;
+    border:2px solid var(--paper);
+    border-top-color: transparent;
+    border-radius:50%;
+    animation:spin 0.7s linear infinite;
+    margin-right:8px;
+    vertical-align:middle;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="seal">RI</div>
+    <div>
+      <h1>SIPADU</h1>
+      <div class="sub">SISTEM PERSURATAN DIGITAL TERPADU</div>
+    </div>
+  </div>
+  <div class="tag">PROTOTYPE / DEMO<br>NO: 000/DEMO/2026</div>
+</header>
+
+<div class="layout">
+  <div class="panel left">
+
+    <details class="settings" id="settingsPanel">
+      <summary>⚙ Pengaturan Kop Surat & Instansi</summary>
+      <div class="settings-grid">
+        <div class="full">
+          <label>Nama Instansi Induk</label>
+          <input type="text" id="cfgInstansi" value="UNIVERSITAS NEGERI SURABAYA">
+        </div>
+        <div class="full">
+          <label>Nama Unit/Fakultas</label>
+          <input type="text" id="cfgUnit" value="FAKULTAS ILMU SOSIAL DAN ILMU POLITIK">
+        </div>
+        <div class="full">
+          <label>Alamat</label>
+          <input type="text" id="cfgAlamat" value="Kampus Unesa 1, Jl. Ketintang, Surabaya, 60231">
+        </div>
+        <div>
+          <label>Email</label>
+          <input type="text" id="cfgEmail" value="fisipol@unesa.ac.id">
+        </div>
+        <div>
+          <label>Website</label>
+          <input type="text" id="cfgWebsite" value="www.fisipol.unesa.ac.id">
+        </div>
+        <div>
+          <label>Kode Unit (untuk nomor surat)</label>
+          <input type="text" id="cfgKodeUnit" value="UN38.4">
+        </div>
+        <div>
+          <label>Format Nomor Surat Biasa</label>
+          <input type="text" id="cfgFormatBiasa" value="B/[nomor]/UN38.4/[kode.klasifikasi]/2026">
+        </div>
+        <div>
+          <label>Nama Pejabat Penandatangan</label>
+          <input type="text" id="cfgPejabatNama" value="Dr. Wiwik Sri Utami, MP.">
+        </div>
+        <div>
+          <label>Jabatan Pejabat</label>
+          <input type="text" id="cfgPejabatJabatan" value="Dekan">
+        </div>
+        <div class="full">
+          <label>NIP Pejabat</label>
+          <input type="text" id="cfgPejabatNip" value="196708051993022001">
+        </div>
+      </div>
+      <div class="hint">Pengaturan ini otomatis dipakai saat menyusun draf surat keluar. Sudah diisi contoh berdasarkan pola surat FISIPOL UNESA — silakan sesuaikan untuk instansi Anda.</div>
+    </details>
+
+    <div class="step-label">Tahap 1</div>
+    <h2>Surat Masuk</h2>
+
+    <div class="tabs">
+      <button type="button" class="tab-btn active" id="tabPdfBtn" onclick="switchTab('pdf')">Upload PDF</button>
+      <button type="button" class="tab-btn" id="tabTextBtn" onclick="switchTab('text')">Tempel Teks</button>
+    </div>
+
+    <div id="tabPdf">
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+        <div id="dropzoneLabel">📄 Klik untuk pilih file PDF surat masuk<br><span class="hint" style="margin:0;">Mendukung PDF digital maupun hasil scan</span></div>
+      </div>
+      <input type="file" id="fileInput" accept="application/pdf" style="display:none" onchange="handleFile(event)">
+    </div>
+
+    <div id="tabText" style="display:none;">
+      <button class="sample-btn" onclick="loadSample()">Gunakan contoh surat masuk →</button>
+      <textarea id="inputSurat" placeholder="Tempelkan isi surat masuk di sini (nomor surat, pengirim, perihal, isi permohonan, dsb)..."></textarea>
+    </div>
+
+    <button id="btnAnalisis" onclick="analisisSurat()">Analisis Surat Masuk</button>
+    <div id="statusAnalisis" class="status"></div>
+
+    <div id="hasilAnalisis"></div>
+  </div>
+
+  <div class="panel right">
+    <div class="step-label">Tahap 2</div>
+    <h2>Draf Surat Keluar</h2>
+    <div class="jenis-row">
+      <label for="jenisSurat">Jenis surat keluar:</label>
+      <select id="jenisSurat">
+        <option value="otomatis">Deteksi otomatis</option>
+        <option value="biasa">Surat Biasa (undangan/balasan/permohonan)</option>
+        <option value="edaran">Surat Edaran</option>
+        <option value="tugas">Surat Tugas</option>
+      </select>
+    </div>
+    <div id="draftArea">
+      <div class="empty">Draf surat keluar akan muncul di sini<br>setelah surat masuk dianalisis.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const sampleLetter = `SEKRETARIAT DESA SUKAMAJU
+Nomor: 140/22/SD-SM/VIII/2026
+Perihal: Permohonan Surat Keterangan Tidak Mampu
+Lampiran: 1 (satu) berkas
+
+Kepada Yth.
+Kepala Dinas Sosial Kabupaten Sukamaju
+di Tempat
+
+Dengan hormat,
+Yang bertanda tangan di bawah ini, Kepala Desa Sukamaju, atas nama warga kami:
+
+Nama: Budi Santoso
+NIK: 3578xxxxxxxxxxxx
+Alamat: Dusun Krajan RT 02/RW 05, Desa Sukamaju
+
+Dengan ini mengajukan permohonan penerbitan Surat Keterangan Tidak Mampu (SKTM) untuk keperluan pengajuan bantuan biaya pendidikan anak yang bersangkutan ke jenjang SMA.
+
+Sebagai bahan pertimbangan, bersama ini kami lampirkan fotokopi KTP, KK, dan surat pengantar RT/RW.
+
+Demikian surat permohonan ini kami sampaikan. Atas perhatian dan kerja samanya, kami ucapkan terima kasih.
+
+Sukamaju, 10 Agustus 2026
+Kepala Desa Sukamaju,
+
+(ttd)
+H. Ahmad Fauzi`;
+
+function loadSample(){
+  document.getElementById('inputSurat').value = sampleLetter;
+}
+
+let pdfBase64 = null;
+let pdfFileName = null;
+
+function switchTab(tab){
+  const isPdf = tab === 'pdf';
+  document.getElementById('tabPdf').style.display = isPdf ? 'block' : 'none';
+  document.getElementById('tabText').style.display = isPdf ? 'none' : 'block';
+  document.getElementById('tabPdfBtn').className = 'tab-btn' + (isPdf ? ' active' : '');
+  document.getElementById('tabTextBtn').className = 'tab-btn' + (isPdf ? '' : ' active');
+}
+
+function handleFile(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  pdfFileName = file.name;
+  const reader = new FileReader();
+  reader.onload = () => {
+    pdfBase64 = reader.result.split(",")[1];
+    const dz = document.getElementById('dropzone');
+    dz.classList.add('has-file');
+    document.getElementById('dropzoneLabel').innerHTML = '✅ <strong>' + escapeHtml(file.name) + '</strong><br><span class="hint" style="margin:0;">Klik untuk ganti file</span>';
+  };
+  reader.onerror = () => {
+    document.getElementById('statusAnalisis').textContent = "Gagal membaca file.";
+    document.getElementById('statusAnalisis').className = "status err";
+  };
+  reader.readAsDataURL(file);
+}
+
+async function callClaude(systemPrompt, contentBlocks){
+  // Memanggil backend sendiri (/api/claude), BUKAN langsung ke Anthropic.
+  // API key disimpan aman di server (environment variable), tidak pernah dikirim ke browser.
+  const response = await fetch("/api/claude", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      max_tokens: 1200,
+      system: systemPrompt,
+      messages: [{ role: "user", content: contentBlocks }]
+    })
+  });
+  const data = await response.json();
+  if(!response.ok){
+    const msg = (data && data.error && (data.error.message || data.error)) || ("HTTP " + response.status);
+    throw new Error("Gagal menghubungi layanan AI: " + msg);
+  }
+  const text = data.content.map(b => b.text || "").join("\n");
+  return text;
+}
+
+let extracted = null;
+
+async function analisisSurat(){
+  const isPdfMode = document.getElementById('tabPdfBtn').classList.contains('active');
+  const input = document.getElementById('inputSurat').value.trim();
+  const statusEl = document.getElementById('statusAnalisis');
+  const btn = document.getElementById('btnAnalisis');
+  const hasilEl = document.getElementById('hasilAnalisis');
+
+  if(isPdfMode && !pdfBase64){
+    statusEl.textContent = "Upload file PDF surat masuk terlebih dahulu.";
+    statusEl.className = "status err";
+    return;
+  }
+  if(!isPdfMode && !input){
+    statusEl.textContent = "Isi surat masuk terlebih dahulu.";
+    statusEl.className = "status err";
+    return;
+  }
+
+  btn.disabled = true;
+  statusEl.className = "status";
+  statusEl.innerHTML = '<span class="spinner"></span>Membaca dan menganalisis surat masuk...';
+  hasilEl.innerHTML = "";
+
+  try{
+    const sys = "Anda adalah petugas tata usaha di instansi pemerintah Indonesia yang ahli membaca surat resmi, termasuk dari hasil pindai/scan. Jawab HANYA dalam format JSON valid, tanpa teks lain, tanpa markdown code fence. Format: {\"nomor_surat\":\"\",\"tanggal_surat\":\"\",\"pengirim\":\"\",\"perihal\":\"\",\"pemohon\":\"\",\"jenis_permohonan\":\"\",\"poin_permohonan\":[\"\"],\"lampiran\":\"\"}. Jika suatu field tidak ditemukan, isi dengan string kosong atau array kosong.";
+
+    let contentBlocks;
+    if(isPdfMode){
+      contentBlocks = [
+        { type: "document", source: { type: "base64", media_type: "application/pdf", data: pdfBase64 } },
+        { type: "text", text: "Analisis surat masuk pada file PDF ini." }
+      ];
+    } else {
+      contentBlocks = "Analisis surat masuk berikut:\n\n" + input;
+    }
+
+    const raw = await callClaude(sys, contentBlocks);
+    const clean = raw.replace(/```json|```/g, "").trim();
+    extracted = JSON.parse(clean);
+
+    let poinHtml = "";
+    if(extracted.poin_permohonan && extracted.poin_permohonan.length){
+      poinHtml = "<ul>" + extracted.poin_permohonan.map(p => "<li>" + escapeHtml(p) + "</li>").join("") + "</ul>";
+    } else {
+      poinHtml = "<div class='val'>—</div>";
+    }
+
+    hasilEl.innerHTML = `
+      <div class="card">
+        <div class="field"><label>Nomor Surat</label><div class="val">${escapeHtml(extracted.nomor_surat || "—")}</div></div>
+        <div class="field"><label>Tanggal</label><div class="val">${escapeHtml(extracted.tanggal_surat || "—")}</div></div>
+        <div class="field"><label>Pengirim</label><div class="val">${escapeHtml(extracted.pengirim || "—")}</div></div>
+        <div class="field"><label>Perihal</label><div class="val">${escapeHtml(extracted.perihal || "—")}</div></div>
+        <div class="field"><label>Jenis Permohonan</label><div class="val">${escapeHtml(extracted.jenis_permohonan || "—")}</div></div>
+        <div class="field"><label>Poin Permohonan</label>${poinHtml}</div>
+      </div>
+      <button onclick="buatDraf()">Buat Draf Surat Keluar →</button>
+    `;
+    statusEl.textContent = "Analisis selesai.";
+  }catch(err){
+    statusEl.textContent = "Terjadi kesalahan: " + err.message;
+    statusEl.className = "status err";
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+function getInstansiConfig(){
+  return {
+    instansi: document.getElementById('cfgInstansi').value.trim(),
+    unit: document.getElementById('cfgUnit').value.trim(),
+    alamat: document.getElementById('cfgAlamat').value.trim(),
+    email: document.getElementById('cfgEmail').value.trim(),
+    website: document.getElementById('cfgWebsite').value.trim(),
+    kodeUnit: document.getElementById('cfgKodeUnit').value.trim(),
+    formatBiasa: document.getElementById('cfgFormatBiasa').value.trim(),
+    pejabatNama: document.getElementById('cfgPejabatNama').value.trim(),
+    pejabatJabatan: document.getElementById('cfgPejabatJabatan').value.trim(),
+    pejabatNip: document.getElementById('cfgPejabatNip').value.trim(),
+  };
+}
+
+const templateNotes = {
+  biasa: `TEMPLATE "SURAT BIASA" (undangan / balasan / permohonan):
+Baris kop: [INSTANSI] (baris judul) lalu [UNIT] di bawahnya, sejajar dengan alamat/email/website di kanan.
+Garis pemisah tebal di bawah kop.
+Lalu blok: "Nomor : [nomor]" / "Lampiran : [-/jumlah]" / "Perihal/Hal : [perihal]" — tanggal surat diletakkan sejajar di kanan blok ini (atau di kota, tanggal pada bagian penutup — pilih salah satu gaya yang konsisten).
+"Kepada Yth." lalu nama/jabatan tujuan.
+"Dengan hormat," lalu isi surat menjawab/menindaklanjuti poin permohonan.
+Penutup baku: "Demikian ... atas perhatian dan kerja sama[nya] kami ucapkan terima kasih."
+Blok tanda tangan di kanan bawah: jabatan, lalu nama pejabat, lalu "NIP [nip]".`,
+  edaran: `TEMPLATE "SURAT EDARAN":
+Kop surat sama seperti surat biasa, garis pemisah tebal.
+Judul di tengah: "SURAT EDARAN" lalu "Nomor: [nomor]" lalu "TENTANG" lalu judul edaran huruf kapital tebal, semua center-aligned.
+"Yth." lalu daftar pihak yang dituju (numbered list).
+"Dengan hormat," lalu paragraf konteks/latar belakang, lalu isi himbauan/pemberitahuan (bisa pakai rincian hari/tanggal/waktu/lokasi/keperluan sebagai list).
+Penutup baku ucapan terima kasih.
+Tanda tangan: "[Kota], [tanggal]" lalu jabatan, lalu nama pejabat, lalu NIP — rata kanan bawah.`,
+  tugas: `TEMPLATE "SURAT TUGAS":
+Kop surat sama, garis pemisah tebal.
+Judul di tengah: "SURAT TUGAS" lalu "Nomor : [nomor tanpa awalan B/]".
+"Berdasarkan:" lalu daftar dasar hukum/rujukan surat masuk (numbered).
+Paragraf: "[Jabatan pejabat] [Unit] mengijinkan dan menugaskan nama dibawah ini:" lalu tabel/daftar Nama, NIP, Jabatan, Pangkat/Gol (isi placeholder jika tidak diketahui dari surat masuk).
+Paragraf: "Aktif berperan serta sebagai [peran] dalam [nama kegiatan]" pada tanggal/tempat kegiatan.
+"Dengan ketentuan :" lalu daftar ketentuan baku (laksanakan tanpa mengganggu tugas pokok, dengan penuh tanggung jawab, dst).
+"Tembusan :" daftar pihak tembusan (opsional, boleh placeholder).
+Tanda tangan: "[Kota], [tanggal]" lalu jabatan, lalu nama pejabat, lalu NIP.`
+};
+
+async function buatDraf(){
+  const draftArea = document.getElementById('draftArea');
+  draftArea.innerHTML = '<div class="status"><span class="spinner"></span>Menyusun draf surat keluar...</div>';
+
+  try{
+    const cfg = getInstansiConfig();
+    const jenisPilihan = document.getElementById('jenisSurat').value;
+
+    const kopInfo = `DATA INSTANSI (gunakan persis untuk kop surat):
+Instansi: ${cfg.instansi}
+Unit: ${cfg.unit}
+Alamat: ${cfg.alamat}
+Email: ${cfg.email}
+Website: ${cfg.website}
+Kode unit untuk nomor surat: ${cfg.kodeUnit}
+Contoh format nomor surat biasa: ${cfg.formatBiasa}
+Pejabat penandatangan: ${cfg.pejabatNama}, Jabatan: ${cfg.pejabatJabatan}, NIP: ${cfg.pejabatNip}`;
+
+    let templateBlock;
+    if(jenisPilihan === 'otomatis'){
+      templateBlock = "Tentukan sendiri jenis surat keluar yang paling sesuai (Surat Biasa / Surat Edaran / Surat Tugas) berdasarkan isi surat masuk, lalu ikuti salah satu template berikut yang paling cocok:\n\n" + templateNotes.biasa + "\n\n" + templateNotes.edaran + "\n\n" + templateNotes.tugas;
+    } else {
+      templateBlock = templateNotes[jenisPilihan];
+    }
+
+    const sys = "Anda adalah petugas tata usaha instansi pemerintah/perguruan tinggi Indonesia yang menyusun surat keluar resmi berdasarkan surat masuk, mengikuti format birokrasi baku Indonesia dan pola kop surat instansi yang diberikan. Tulis kop surat sebagai teks biasa di baris-baris awal (karena ini draf teks, logo/format visual akan ditambahkan manual saat dicetak di kop surat resmi). Gunakan nomor surat baru yang wajar mengikuti format instansi (nomor urut boleh berupa placeholder angka wajar, karena nomor urut asli dikelola oleh bagian tata usaha). Jawab hanya dengan teks surat lengkap, tanpa komentar tambahan, tanpa markdown, tanpa penjelasan di luar surat.";
+
+    const userMsg = kopInfo + "\n\n" + templateBlock + "\n\nData hasil analisis surat masuk (JSON):\n" + JSON.stringify(extracted, null, 2) + "\n\nSusun draf surat keluar untuk menindaklanjuti surat masuk ini, mengikuti template dan data instansi di atas.";
+    const draftText = await callClaude(sys, [{ type: "text", text: userMsg }]);
+
+    draftArea.innerHTML = `
+      <div class="draft-wrap">
+        <div class="stamp">DRAF<br>—<br>REVIEW</div>
+        <textarea id="draftText" style="min-height:420px;">${escapeHtml(draftText.trim())}</textarea>
+      </div>
+      <div class="footer-actions">
+        <button class="secondary" onclick="salinDraf()">Salin Teks</button>
+        <button class="secondary" onclick="unduhDraf()">Unduh .txt</button>
+        <button onclick="buatDraf()">Buat Ulang</button>
+      </div>
+      <div class="hint">Draf dihasilkan otomatis — tetap perlu direview dan divalidasi pejabat berwenang sebelum dikirim/ditandatangani.</div>
+    `;
+  }catch(err){
+    draftArea.innerHTML = '<div class="status err">Terjadi kesalahan: ' + escapeHtml(err.message) + '</div><button onclick="buatDraf()">Coba Lagi</button>';
+  }
+}
+
+function salinDraf(){
+  const ta = document.getElementById('draftText');
+  ta.select();
+  document.execCommand('copy');
+}
+
+function unduhDraf(){
+  const ta = document.getElementById('draftText');
+  const blob = new Blob([ta.value], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'draf-surat-keluar.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function escapeHtml(str){
+  if(!str) return "";
+  return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+</script>
+
+</body>
+</html>

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SIPADU — Sistem Persuratan Digital Terpadu</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
   :root{
     --navy: #1B2A4A;
@@ -393,7 +394,7 @@
 
     <div id="tabPdf">
       <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
-        <div id="dropzoneLabel">📄 Klik untuk pilih file PDF surat masuk<br><span class="hint" style="margin:0;">Mendukung PDF digital maupun hasil scan</span></div>
+        <div id="dropzoneLabel">📄 Klik untuk pilih file PDF surat masuk<br><span class="hint" style="margin:0;">Hanya PDF digital (bukan hasil scan/foto) — versi Groq membaca teks dari PDF, bukan gambar</span></div>
       </div>
       <input type="file" id="fileInput" accept="application/pdf" style="display:none" onchange="handleFile(event)">
     </div>
@@ -460,8 +461,22 @@ function loadSample(){
   document.getElementById('inputSurat').value = sampleLetter;
 }
 
-let pdfBase64 = null;
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+let pdfExtractedText = null;
 let pdfFileName = null;
+
+async function extractPdfText(file){
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  for(let i = 1; i <= pdf.numPages; i++){
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    fullText += content.items.map(item => item.str).join(' ') + '\n\n';
+  }
+  return fullText.trim();
+}
 
 function switchTab(tab){
   const isPdf = tab === 'pdf';
@@ -471,34 +486,41 @@ function switchTab(tab){
   document.getElementById('tabTextBtn').className = 'tab-btn' + (isPdf ? '' : ' active');
 }
 
-function handleFile(event){
+async function handleFile(event){
   const file = event.target.files[0];
   if(!file) return;
   pdfFileName = file.name;
-  const reader = new FileReader();
-  reader.onload = () => {
-    pdfBase64 = reader.result.split(",")[1];
-    const dz = document.getElementById('dropzone');
-    dz.classList.add('has-file');
-    document.getElementById('dropzoneLabel').innerHTML = '✅ <strong>' + escapeHtml(file.name) + '</strong><br><span class="hint" style="margin:0;">Klik untuk ganti file</span>';
-  };
-  reader.onerror = () => {
-    document.getElementById('statusAnalisis').textContent = "Gagal membaca file.";
-    document.getElementById('statusAnalisis').className = "status err";
-  };
-  reader.readAsDataURL(file);
+  const dz = document.getElementById('dropzone');
+  const label = document.getElementById('dropzoneLabel');
+  label.innerHTML = '⏳ Membaca teks dari PDF...';
+
+  try{
+    const text = await extractPdfText(file);
+    pdfExtractedText = text;
+
+    if(!text || text.length < 20){
+      dz.classList.add('has-file');
+      label.innerHTML = '⚠️ <strong>' + escapeHtml(file.name) + '</strong><br><span class="hint" style="margin:0; color:var(--stamp);">Tidak ada teks yang terbaca — kemungkinan ini PDF hasil scan/gambar, yang tidak didukung versi Groq. Coba tab "Tempel Teks" atau PDF digital lain.</span>';
+    } else {
+      dz.classList.add('has-file');
+      label.innerHTML = '✅ <strong>' + escapeHtml(file.name) + '</strong><br><span class="hint" style="margin:0;">Teks berhasil diekstrak (' + text.length + ' karakter). Klik untuk ganti file.</span>';
+    }
+  }catch(err){
+    pdfExtractedText = null;
+    label.innerHTML = '❌ Gagal membaca PDF: ' + escapeHtml(err.message);
+  }
 }
 
-async function callClaude(systemPrompt, contentBlocks){
-  // Memanggil backend sendiri (/api/claude), BUKAN langsung ke Anthropic.
+async function callAI(systemPrompt, userText){
+  // Memanggil backend sendiri (/api/groq), BUKAN langsung ke Groq.
   // API key disimpan aman di server (environment variable), tidak pernah dikirim ke browser.
-  const response = await fetch("/api/claude", {
+  const response = await fetch("/api/groq", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       max_tokens: 1200,
       system: systemPrompt,
-      messages: [{ role: "user", content: contentBlocks }]
+      user: userText
     })
   });
   const data = await response.json();
@@ -506,8 +528,7 @@ async function callClaude(systemPrompt, contentBlocks){
     const msg = (data && data.error && (data.error.message || data.error)) || ("HTTP " + response.status);
     throw new Error("Gagal menghubungi layanan AI: " + msg);
   }
-  const text = data.content.map(b => b.text || "").join("\n");
-  return text;
+  return data.choices[0].message.content;
 }
 
 let extracted = null;
@@ -519,8 +540,8 @@ async function analisisSurat(){
   const btn = document.getElementById('btnAnalisis');
   const hasilEl = document.getElementById('hasilAnalisis');
 
-  if(isPdfMode && !pdfBase64){
-    statusEl.textContent = "Upload file PDF surat masuk terlebih dahulu.";
+  if(isPdfMode && (!pdfExtractedText || pdfExtractedText.length < 20)){
+    statusEl.textContent = "Upload file PDF dengan teks yang bisa terbaca terlebih dahulu (bukan hasil scan).";
     statusEl.className = "status err";
     return;
   }
@@ -536,19 +557,12 @@ async function analisisSurat(){
   hasilEl.innerHTML = "";
 
   try{
-    const sys = "Anda adalah petugas tata usaha di instansi pemerintah Indonesia yang ahli membaca surat resmi, termasuk dari hasil pindai/scan. Jawab HANYA dalam format JSON valid, tanpa teks lain, tanpa markdown code fence. Format: {\"nomor_surat\":\"\",\"tanggal_surat\":\"\",\"pengirim\":\"\",\"perihal\":\"\",\"pemohon\":\"\",\"jenis_permohonan\":\"\",\"poin_permohonan\":[\"\"],\"lampiran\":\"\"}. Jika suatu field tidak ditemukan, isi dengan string kosong atau array kosong.";
+    const sys = "Anda adalah petugas tata usaha di instansi pemerintah Indonesia yang ahli membaca surat resmi. Jawab HANYA dalam format JSON valid, tanpa teks lain, tanpa markdown code fence. Format: {\"nomor_surat\":\"\",\"tanggal_surat\":\"\",\"pengirim\":\"\",\"perihal\":\"\",\"pemohon\":\"\",\"jenis_permohonan\":\"\",\"poin_permohonan\":[\"\"],\"lampiran\":\"\"}. Jika suatu field tidak ditemukan, isi dengan string kosong atau array kosong.";
 
-    let contentBlocks;
-    if(isPdfMode){
-      contentBlocks = [
-        { type: "document", source: { type: "base64", media_type: "application/pdf", data: pdfBase64 } },
-        { type: "text", text: "Analisis surat masuk pada file PDF ini." }
-      ];
-    } else {
-      contentBlocks = "Analisis surat masuk berikut:\n\n" + input;
-    }
+    const suratText = isPdfMode ? pdfExtractedText : input;
+    const userText = "Analisis surat masuk berikut:\n\n" + suratText;
 
-    const raw = await callClaude(sys, contentBlocks);
+    const raw = await callAI(sys, userText);
     const clean = raw.replace(/```json|```/g, "").trim();
     extracted = JSON.parse(clean);
 
@@ -649,7 +663,7 @@ Pejabat penandatangan: ${cfg.pejabatNama}, Jabatan: ${cfg.pejabatJabatan}, NIP: 
     const sys = "Anda adalah petugas tata usaha instansi pemerintah/perguruan tinggi Indonesia yang menyusun surat keluar resmi berdasarkan surat masuk, mengikuti format birokrasi baku Indonesia dan pola kop surat instansi yang diberikan. Tulis kop surat sebagai teks biasa di baris-baris awal (karena ini draf teks, logo/format visual akan ditambahkan manual saat dicetak di kop surat resmi). Gunakan nomor surat baru yang wajar mengikuti format instansi (nomor urut boleh berupa placeholder angka wajar, karena nomor urut asli dikelola oleh bagian tata usaha). Jawab hanya dengan teks surat lengkap, tanpa komentar tambahan, tanpa markdown, tanpa penjelasan di luar surat.";
 
     const userMsg = kopInfo + "\n\n" + templateBlock + "\n\nData hasil analisis surat masuk (JSON):\n" + JSON.stringify(extracted, null, 2) + "\n\nSusun draf surat keluar untuk menindaklanjuti surat masuk ini, mengikuti template dan data instansi di atas.";
-    const draftText = await callClaude(sys, [{ type: "text", text: userMsg }]);
+    const draftText = await callAI(sys, userMsg);
 
     draftArea.innerHTML = `
       <div class="draft-wrap">
